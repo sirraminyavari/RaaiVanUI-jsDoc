@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: hooks/useCheckRoute.js</title>
+    <title>JSDoc: Source: stories/Button.jsx</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: hooks/useCheckRoute.js</h1>
+    <h1 class="page-title">Source: stories/Button.jsx</h1>
 
     
 
@@ -26,46 +26,59 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import useQuery from 'hooks/useQuery';
-import { API_Provider } from 'helpers/helpers';
-import { CHECK_ROUTE, RV_API } from 'constant/apiConstants';
+            <pre class="prettyprint source linenums"><code>import React from 'react';
+import PropTypes from 'prop-types';
+import './button.css';
 
 /**
- * This hook checks every route for permission.
- * @hook
- * @param {string} name -The name of the given route.
- * @returns {Object} The result object
+ * Primary UI component for user interaction
  */
-const useCheckRoute = (name) => {
-  const [result, setResult] = useState({});
-  const routeParams = useParams();
-  const queryParams = useQuery();
-  const params = { ...routeParams, ...queryParams };
-  const apiHandler = API_Provider(RV_API, CHECK_ROUTE);
-
-  useEffect(() => {
-    const prevURL = window.location.href;
-    apiHandler.fetch(
-      { RouteName: name, Parameters: params, ParseResults: true },
-      (response) => {
-        const currentURL = window.location.href;
-        prevURL === currentURL &amp;&amp; setResult(response);
-      },
-      (error) => console.log(error)
-    );
-
-    return () => {
-      setResult({});
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, routeParams, queryParams]);
-
-  return result;
+export const Button = ({ primary, backgroundColor, size, label, ...props }) => {
+  const mode = primary
+    ? 'storybook-button--primary'
+    : 'storybook-button--secondary';
+  return (
+    &lt;button
+      type="button"
+      className={['storybook-button', `storybook-button--${size}`, mode].join(
+        ' '
+      )}
+      style={backgroundColor &amp;&amp; { backgroundColor }}
+      {...props}>
+      {label}
+    &lt;/button>
+  );
 };
 
-export default useCheckRoute;
+Button.propTypes = {
+  /**
+   * Is this the principal call to action on the page?
+   */
+  primary: PropTypes.bool,
+  /**
+   * What background color to use
+   */
+  backgroundColor: PropTypes.string,
+  /**
+   * How large should the button be?
+   */
+  size: PropTypes.oneOf(['small', 'medium', 'large']),
+  /**
+   * Button contents
+   */
+  label: PropTypes.string.isRequired,
+  /**
+   * Optional click handler
+   */
+  onClick: PropTypes.func,
+};
+
+Button.defaultProps = {
+  backgroundColor: null,
+  primary: false,
+  size: 'medium',
+  onClick: undefined,
+};
 </code></pre>
         </article>
     </section>
