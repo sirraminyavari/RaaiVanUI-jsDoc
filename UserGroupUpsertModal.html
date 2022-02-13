@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: components/FormElements/FormFilter/types/user/UserType.js</title>
+    <title>JSDoc: Class: UserGroupUpsertModal</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,126 +17,536 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: components/FormElements/FormFilter/types/user/UserType.js</h1>
+    <h1 class="page-title">Class: UserGroupUpsertModal</h1>
 
     
 
 
 
+
+<section>
+
+<header>
     
-    <section>
-        <article>
-            <pre class="prettyprint source linenums"><code>/**
- * Renders a user filter.
- */
-import { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { decodeBase64, encodeBase64 } from 'helpers/helpers';
-import ItemProducer from 'components/ItemProducer/ItemProducer';
-import { API_Provider } from 'helpers/helpers';
-import * as Styled from '../types.styles';
-import useWindow from 'hooks/useWindowContext';
-import { GET_USERS, USERS_API } from 'constant/apiConstants';
+        <h2><span class="attribs"><span class="type-signature"></span></span>UserGroupUpsertModal<span class="signature">(group, createMode, users, onModalDelete, onModalConfirm)</span><span class="type-signature"> &rarr; {JSX.Element}</span></h2>
+        
+    
+</header>
 
-/**
- * @typedef PropType
- * @type {Object}
- * @property {Object} value - Value of component.
- * @property {Object} data - Meta data needed for component.
- * @property {function} onChange - A callback function that fires when value changes.
- */
+<article>
+    <div class="container-overview">
+    
+        
 
-/**
- *  @description Renders a user type component.
- * @component
- * @param {PropType} props -Props that are passed to component.
- */
-const UserType = (props) => {
-  const { onChange, data, value } = props;
-  const { ElementID, Title } = data || {}; //! Meta data to feed component.
-  const getUsersAPI = API_Provider(USERS_API, GET_USERS);
+    
 
-  // const { MultiSelect } = JSON.parse(decodeBase64(Info));
-  const [items, setItems] = useState([]);
-  const [resetValue, setResetValue] = useState(null);
-  const { GlobalUtilities } = useWindow();
+    
+    <h4 class="name" id="UserGroupUpsertModal"><span class="type-signature"></span>new UserGroupUpsertModal<span class="signature">(group, createMode, users, onModalDelete, onModalConfirm)</span><span class="type-signature"> &rarr; {JSX.Element}</span></h4>
+    
 
-  //! Fetch users based on search text.
-  const fetchUsers = (searchText) => {
-    return new Promise((resolve, reject) => {
-      getUsersAPI.fetch(
-        {
-          SearchText: encodeBase64(searchText),
-          Count: 20,
-        },
-        (response) => {
-          const users = response?.Users?.map((user) => ({
-            id: user?.UserID,
-            value: decodeBase64(user?.FullName),
-          }));
-          resolve(users);
-        },
-        (error) => reject(error)
-      );
-    });
-  };
+    
 
-  const handleSelectUsers = (users) => {
-    setItems(users);
-  };
 
-  useEffect(() => {
-    const id = ElementID;
-    const userIds = items?.map((user) => user?.id);
-    const JSONValue = { GuidItems: userIds };
 
-    //! Send back value to parent on select.
-    onChange({
-      id,
-      value: {
-        Type: 'user',
-        GuidItems: !items?.length ? null : userIds.join('|'),
-        Data: items,
-        JSONValue: !items?.length ? null : JSONValue,
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+<div class="description">
+    <p>create and edit user groups modal component</p>
+</div>
 
-  useEffect(() => {
-    if (value === undefined) {
-      setResetValue(GlobalUtilities.random());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
 
-  return (
-    &lt;Styled.FilterContainer>
-      &lt;Styled.FilterTitle>{decodeBase64(Title)}&lt;/Styled.FilterTitle>
-      &lt;ItemProducer
-        type="autosuggest"
-        fetchItems={fetchUsers}
-        isDragDisabled={true}
-        onItems={handleSelectUsers}
-        style={{ width: '100%' }}
-        resetMe={resetValue}
-      />
-    &lt;/Styled.FilterContainer>
-  );
-};
 
-UserType.propTypes = {
-  onChange: PropTypes.func,
-  data: PropTypes.object,
-  value: PropTypes.object,
-};
 
-UserType.displayName = 'FilterUserComponent';
 
-export default UserType;
-</code></pre>
-        </article>
-    </section>
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>group</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>group object to edit</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>createMode</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>users</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>onModalDelete</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>onModalConfirm</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="views_AdminPanel_PanelsView_UserGroups_items_UserGroupUpsertModal.js.html">views/AdminPanel/PanelsView/UserGroups/items/UserGroupUpsertModal.js</a>, <a href="views_AdminPanel_PanelsView_UserGroups_items_UserGroupUpsertModal.js.html#line22">line 22</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">JSX.Element</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2><span class="attribs"><span class="type-signature"></span></span>UserGroupUpsertModal<span class="signature">(group, createMode, users, onModalDelete, onModalConfirm)</span><span class="type-signature"> &rarr; {JSX.Element}</span></h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+    
+
+    
+    <h4 class="name" id="UserGroupUpsertModal"><span class="type-signature"></span>new UserGroupUpsertModal<span class="signature">(group, createMode, users, onModalDelete, onModalConfirm)</span><span class="type-signature"> &rarr; {JSX.Element}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>create and edit user groups modal component</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>group</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>group object to edit</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>createMode</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>users</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>onModalDelete</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>onModalConfirm</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="views_AdminPanel_PanelsView_UserGroups_items_UserGroupUpsertModal.js.html">views/AdminPanel/PanelsView/UserGroups/items/UserGroupUpsertModal.js</a>, <a href="views_AdminPanel_PanelsView_UserGroups_items_UserGroupUpsertModal.js.html#line22">line 22</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">JSX.Element</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
 
 
 

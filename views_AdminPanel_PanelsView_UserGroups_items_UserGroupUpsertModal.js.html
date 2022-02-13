@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: components/FormElements/FormFilter/types/user/UserType.js</title>
+    <title>JSDoc: Source: views/AdminPanel/PanelsView/UserGroups/items/UserGroupUpsertModal.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: components/FormElements/FormFilter/types/user/UserType.js</h1>
+    <h1 class="page-title">Source: views/AdminPanel/PanelsView/UserGroups/items/UserGroupUpsertModal.js</h1>
 
     
 
@@ -26,114 +26,204 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
- * Renders a user filter.
- */
-import { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { decodeBase64, encodeBase64 } from 'helpers/helpers';
-import ItemProducer from 'components/ItemProducer/ItemProducer';
-import { API_Provider } from 'helpers/helpers';
-import * as Styled from '../types.styles';
-import useWindow from 'hooks/useWindowContext';
-import { GET_USERS, USERS_API } from 'constant/apiConstants';
+            <pre class="prettyprint source linenums"><code>import * as Styled from '../UserGroupsStyles';
+import * as ModalStyles from './UserGroupUpsertModalStyles';
+import Modal from 'components/Modal/Modal';
+import { useState } from 'react';
+import AddIcon from 'components/Icons/AddIcon/AddIcon';
+import CloseIcon from 'components/Icons/CloseIcon/CloseIcon';
+import Button from 'components/Buttons/Button';
+import useWindowContext from 'hooks/useWindowContext';
+import SettingOutlineIcon from 'components/Icons/SettingOutlineIcon/SettingOutlineIcon';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
 /**
- * @typedef PropType
- * @type {Object}
- * @property {Object} value - Value of component.
- * @property {Object} data - Meta data needed for component.
- * @property {function} onChange - A callback function that fires when value changes.
+ * @description create and edit user groups modal component
+ * @param group group object to edit
+ * @param createMode
+ * @param users
+ * @param onModalDelete
+ * @param onModalConfirm
+ * @return {JSX.Element}
+ * @constructor
  */
+const UserGroupUpsertModal = ({
+  group,
+  createMode,
+  users,
+  onModalDelete,
+  onModalConfirm,
+}) => {
+  const listAnimationDuration = 150;
+  const { RVDic } = useWindowContext();
+  const [modalInfo, setModalInfo] = useState({
+    show: false,
+    title: RVDic.SettingsOfN.replace('[n]', RVDic.Group),
+    contentWidth: '34rem',
+    titleClass: 'rv-default',
+    titleContainerClass: 'modal-title-bar',
+  });
+  const [groupName, setGroupName] = useState(group ? group?.Name : '');
+  const [members, setMembers] = useState(group ? group?.Members : []);
 
-/**
- *  @description Renders a user type component.
- * @component
- * @param {PropType} props -Props that are passed to component.
- */
-const UserType = (props) => {
-  const { onChange, data, value } = props;
-  const { ElementID, Title } = data || {}; //! Meta data to feed component.
-  const getUsersAPI = API_Provider(USERS_API, GET_USERS);
-
-  // const { MultiSelect } = JSON.parse(decodeBase64(Info));
-  const [items, setItems] = useState([]);
-  const [resetValue, setResetValue] = useState(null);
-  const { GlobalUtilities } = useWindow();
-
-  //! Fetch users based on search text.
-  const fetchUsers = (searchText) => {
-    return new Promise((resolve, reject) => {
-      getUsersAPI.fetch(
-        {
-          SearchText: encodeBase64(searchText),
-          Count: 20,
-        },
-        (response) => {
-          const users = response?.Users?.map((user) => ({
-            id: user?.UserID,
-            value: decodeBase64(user?.FullName),
-          }));
-          resolve(users);
-        },
-        (error) => reject(error)
-      );
-    });
+  const handleGroupNameChange = (name) => {
+    setGroupName(name);
   };
 
-  const handleSelectUsers = (users) => {
-    setItems(users);
+  const checkSelection = (userID) => !!members.find((x) => x.UserID === userID);
+
+  const deselect = (user) => {
+    const _members = members.filter((u) => u.UserID !== user.UserID);
+    setMembers(_members);
   };
 
-  useEffect(() => {
-    const id = ElementID;
-    const userIds = items?.map((user) => user?.id);
-    const JSONValue = { GuidItems: userIds };
+  const selectMember = (user) => {
+    const exist = !!members?.find((x) => x.UserID === user.UserID);
 
-    //! Send back value to parent on select.
-    onChange({
-      id,
-      value: {
-        Type: 'user',
-        GuidItems: !items?.length ? null : userIds.join('|'),
-        Data: items,
-        JSONValue: !items?.length ? null : JSONValue,
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+    if (!exist) setMembers([...members, user]);
+  };
 
-  useEffect(() => {
-    if (value === undefined) {
-      setResetValue(GlobalUtilities.random());
+  const handleModalConfirm = () => {
+    setModalInfo({ ...modalInfo, show: false });
+    if (onModalConfirm) {
+      onModalConfirm(groupName, members, group?.NodeID);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  };
+
+  const handleModalCancel = () => {
+    setModalInfo({ ...modalInfo, show: false });
+  };
+
+  const handleDeleteGroup = () => {
+    setModalInfo({ ...modalInfo, show: false });
+    if (onModalDelete) {
+      onModalDelete(group?.NodeID);
+    }
+  };
 
   return (
-    &lt;Styled.FilterContainer>
-      &lt;Styled.FilterTitle>{decodeBase64(Title)}&lt;/Styled.FilterTitle>
-      &lt;ItemProducer
-        type="autosuggest"
-        fetchItems={fetchUsers}
-        isDragDisabled={true}
-        onItems={handleSelectUsers}
-        style={{ width: '100%' }}
-        resetMe={resetValue}
-      />
-    &lt;/Styled.FilterContainer>
+    &lt;>
+      {!createMode &amp;&amp; (
+        &lt;ModalStyles.SettingButton
+          onClick={() => setModalInfo({ ...modalInfo, show: true })}>
+          &lt;SettingOutlineIcon size={28} />
+        &lt;/ModalStyles.SettingButton>
+      )}
+
+      {createMode &amp;&amp; (
+        &lt;Styled.DashedBox
+          onClick={() => setModalInfo({ ...modalInfo, show: true })}>
+          &lt;AddIcon circleOutline={true} size={48} />
+          &lt;div>{RVDic?.CreateNewN.replace('[n]', RVDic.Group)}&lt;/div>
+        &lt;/Styled.DashedBox>
+      )}
+
+      &lt;Modal {...modalInfo} onClose={() => handleModalCancel()}>
+        &lt;ModalStyles.ModalContent>
+          &lt;ModalStyles.InputLabel>
+            {RVDic?.EnterTheGroupName}
+          &lt;/ModalStyles.InputLabel>
+          &lt;ModalStyles.Input
+            value={groupName}
+            onChange={(name) => handleGroupNameChange(name)}
+            type="text"
+            placeholder={'نام گروه'}
+          />
+
+          &lt;ModalStyles.InputLabel>
+            {RVDic?.SelectMembersOfTheGroup}
+          &lt;/ModalStyles.InputLabel>
+          &lt;TransitionGroup
+            duration={listAnimationDuration}
+            component={ModalStyles.SelectedUsersContainer}>
+            {[...members].map((x) => (
+              &lt;CSSTransition
+                key={x?.UserID}
+                timeout={listAnimationDuration}
+                classNames="transition">
+                &lt;UserChips user={x} onDelete={deselect} />
+              &lt;/CSSTransition>
+            ))}
+          &lt;/TransitionGroup>
+
+          &lt;ModalStyles.UserContainer>
+            {[...users].map((x) => (
+              &lt;UserItemRow
+                key={x?.UserID}
+                user={x}
+                selected={checkSelection(x?.UserID)}
+                onSelect={selectMember}
+              />
+            ))}
+          &lt;/ModalStyles.UserContainer>
+
+          &lt;ModalStyles.ModalActionBar>
+            &lt;Button
+              type="primary"
+              style={buttonStyles}
+              onClick={() => handleModalConfirm()}>
+              {RVDic?.Save}
+            &lt;/Button>
+
+            &lt;Button
+              type="negative-o"
+              style={buttonStyles}
+              onClick={() => handleModalCancel()}>
+              {RVDic?.Return}
+            &lt;/Button>
+
+            &lt;ModalStyles.Spacer />
+
+            {!!group &amp;&amp; (
+              &lt;Button
+                type="negative"
+                style={buttonStyles}
+                onClick={() => handleDeleteGroup()}>
+                {RVDic.RemoveN.replace('[n]', RVDic.Group)}
+              &lt;/Button>
+            )}
+          &lt;/ModalStyles.ModalActionBar>
+        &lt;/ModalStyles.ModalContent>
+      &lt;/Modal>
+    &lt;/>
   );
 };
 
-UserType.propTypes = {
-  onChange: PropTypes.func,
-  data: PropTypes.object,
-  value: PropTypes.object,
+const UserChips = ({ user, onDelete }) => {
+  return (
+    &lt;ModalStyles.ChipsWrapper>
+      &lt;ModalStyles.ChipsContainer>
+        &lt;ModalStyles.ChipsProfileImage
+          src={user?.ImageURL}
+          alt={`${user?.FirstName} ${user?.LastName}`}
+        />
+
+        &lt;ModalStyles.ChipsTitle>{`${user?.FullName}`}&lt;/ModalStyles.ChipsTitle>
+
+        &lt;ModalStyles.ChipsCloseIcon onClick={() => onDelete(user)}>
+          &lt;CloseIcon outline={true} size={21} />
+        &lt;/ModalStyles.ChipsCloseIcon>
+      &lt;/ModalStyles.ChipsContainer>
+    &lt;/ModalStyles.ChipsWrapper>
+  );
 };
 
-UserType.displayName = 'FilterUserComponent';
+const UserItemRow = ({ user, selected, onSelect }) => {
+  return (
+    &lt;ModalStyles.UserItemContainer onClick={() => onSelect(user)}>
+      &lt;ModalStyles.ProfileImage src={user?.ImageURL} highlight={selected} />
+      &lt;ModalStyles.UserTitle highlight={selected}>
+        {user?.FullName}
+      &lt;/ModalStyles.UserTitle>
+    &lt;/ModalStyles.UserItemContainer>
+  );
+};
 
-export default UserType;
+const buttonStyles = {
+  height: '3rem',
+  width: '7.5rem',
+};
+export default UserGroupUpsertModal;
 </code></pre>
         </article>
     </section>

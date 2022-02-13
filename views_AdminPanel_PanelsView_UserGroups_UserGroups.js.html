@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: components/FormElements/FormFilter/types/user/UserType.js</title>
+    <title>JSDoc: Source: views/AdminPanel/PanelsView/UserGroups/UserGroups.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: components/FormElements/FormFilter/types/user/UserType.js</h1>
+    <h1 class="page-title">Source: views/AdminPanel/PanelsView/UserGroups/UserGroups.js</h1>
 
     
 
@@ -26,114 +26,189 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
- * Renders a user filter.
- */
-import { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { decodeBase64, encodeBase64 } from 'helpers/helpers';
-import ItemProducer from 'components/ItemProducer/ItemProducer';
-import { API_Provider } from 'helpers/helpers';
-import * as Styled from '../types.styles';
+            <pre class="prettyprint source linenums"><code>import * as Styled from './UserGroupsStyles';
 import useWindow from 'hooks/useWindowContext';
-import { GET_USERS, USERS_API } from 'constant/apiConstants';
+import Breadcrumb from 'components/Breadcrumb/Breadcrumb';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  addNode,
+  getGroupsAll,
+  modifyNodeName,
+  removeNode,
+  saveMembers,
+} from 'apiHelper/ApiHandlers/CNApi';
+import LogoLoader from 'components/Loaders/LogoLoader/LogoLoader';
+import {
+  GroupItem,
+  GroupItemActionBar,
+  GroupItemTitle,
+} from './UserGroupsStyles';
+import UserGroupMembers from './items/UserGroupMembers';
+import UserGroupUpsertModal from './items/UserGroupUpsertModal';
+import { getUsers } from 'apiHelper/ApiHandlers/usersApi';
+import groupImg from 'assets/images/groups.png';
+import PeopleIcon from 'components/Icons/PeopleIcon/PeopleIcon';
+import SearchInput from 'components/Inputs/SearchInput';
+import InfoToast from 'components/toasts/info-toast/InfoToast';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
-/**
- * @typedef PropType
- * @type {Object}
- * @property {Object} value - Value of component.
- * @property {Object} data - Meta data needed for component.
- * @property {function} onChange - A callback function that fires when value changes.
- */
-
-/**
- *  @description Renders a user type component.
- * @component
- * @param {PropType} props -Props that are passed to component.
- */
-const UserType = (props) => {
-  const { onChange, data, value } = props;
-  const { ElementID, Title } = data || {}; //! Meta data to feed component.
-  const getUsersAPI = API_Provider(USERS_API, GET_USERS);
-
-  // const { MultiSelect } = JSON.parse(decodeBase64(Info));
-  const [items, setItems] = useState([]);
-  const [resetValue, setResetValue] = useState(null);
-  const { GlobalUtilities } = useWindow();
-
-  //! Fetch users based on search text.
-  const fetchUsers = (searchText) => {
-    return new Promise((resolve, reject) => {
-      getUsersAPI.fetch(
-        {
-          SearchText: encodeBase64(searchText),
-          Count: 20,
-        },
-        (response) => {
-          const users = response?.Users?.map((user) => ({
-            id: user?.UserID,
-            value: decodeBase64(user?.FullName),
-          }));
-          resolve(users);
-        },
-        (error) => reject(error)
-      );
-    });
-  };
-
-  const handleSelectUsers = (users) => {
-    setItems(users);
-  };
+const UserGroups = () => {
+  const listAnimationDuration = 150;
+  const { RVDic, RV_RTL } = useWindow();
+  const [groups, setGroups] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [NodeTypeID, setNodeTypeID] = useState('');
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
-    const id = ElementID;
-    const userIds = items?.map((user) => user?.id);
-    const JSONValue = { GuidItems: userIds };
+    (async () => {
+      const groups = await getGroupsAll();
+      setNodeTypeID(groups[0]?.NodeTypeID);
+      setGroups(groups);
+      setLoading(false);
 
-    //! Send back value to parent on select.
-    onChange({
-      id,
-      value: {
-        Type: 'user',
-        GuidItems: !items?.length ? null : userIds.join('|'),
-        Data: items,
-        JSONValue: !items?.length ? null : JSONValue,
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+      const users = await getUsers('', true);
+      setAllUsers(users);
+    })();
+  }, []);
 
-  useEffect(() => {
-    if (value === undefined) {
-      setResetValue(GlobalUtilities.random());
+  /**
+   * @description modify groups on modal confirm
+   * @param name
+   * @param users
+   * @param nodeId
+   * @returns {Promise&lt;void>}
+   */
+  const handleModalConfirm = async (name, users, nodeId) => {
+    const userIds = users.map((x) => x?.UserID);
+    if (nodeId) {
+      await modifyNodeName(name, nodeId);
+      await saveMembers(nodeId, userIds);
+      const groups = await getGroupsAll();
+      setGroups(groups);
+    } else {
+      const node = await addNode(name, NodeTypeID);
+      await saveMembers(node?.Node?.NodeID, userIds);
+      const groups = await getGroupsAll();
+      setGroups(groups);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  };
+
+  /**
+   * @description delete group by nodeId
+   * @param nodeId
+   * @returns {Promise&lt;void>}
+   */
+  const handleModalDelete = async (nodeId) => {
+    const { ErrorText } = await removeNode(nodeId);
+    if (ErrorText) {
+      return InfoToast({
+        type: 'error',
+        message: RVDic.MSG[ErrorText] || ErrorText,
+      });
+    } else {
+      const groups = await getGroupsAll();
+      setGroups(groups);
+    }
+  };
+
+  const groupItems = useMemo(
+    () =>
+      [...groups]
+        ?.filter((x) => x?.Name.includes(searchText))
+        ?.map((x) => (
+          &lt;CSSTransition
+            key={x?.NodeID}
+            timeout={listAnimationDuration}
+            classNames="transition">
+            &lt;GroupItem>
+              &lt;Styled.GroupIconContainer rtl={RV_RTL}>
+                &lt;PeopleIcon size={96} />
+              &lt;/Styled.GroupIconContainer>
+              &lt;GroupItemTitle>{x?.Name}&lt;/GroupItemTitle>
+              &lt;GroupItemActionBar>
+                &lt;UserGroupMembers members={x?.Members} />
+                &lt;UserGroupUpsertModal
+                  group={x}
+                  typeId={NodeTypeID}
+                  createMode={false}
+                  users={allUsers}
+                  onModalConfirm={handleModalConfirm}
+                  onModalDelete={handleModalDelete}
+                />
+              &lt;/GroupItemActionBar>
+            &lt;/GroupItem>
+          &lt;/CSSTransition>
+        )),
+    [groups, allUsers, searchText]
+  );
+  const breadcrumbs = [
+    {
+      id: 1,
+      title: RVDic?.TeamManagement,
+      linkTo: '',
+    },
+    {
+      id: 2,
+      title: RVDic?.UserManagement,
+      linkTo: 'users',
+    },
+    {
+      id: 3,
+      title: RVDic?.Groups,
+      linkTo: 'usergroups',
+    },
+  ];
 
   return (
-    &lt;Styled.FilterContainer>
-      &lt;Styled.FilterTitle>{decodeBase64(Title)}&lt;/Styled.FilterTitle>
-      &lt;ItemProducer
-        type="autosuggest"
-        fetchItems={fetchUsers}
-        isDragDisabled={true}
-        onItems={handleSelectUsers}
-        style={{ width: '100%' }}
-        resetMe={resetValue}
-      />
-    &lt;/Styled.FilterContainer>
+    &lt;Styled.UserGroupsContainer rtl={RV_RTL}>
+      &lt;Styled.UserGroupsContent>
+        &lt;Breadcrumb items={breadcrumbs} />
+
+        &lt;Styled.GroupsContainer>
+          &lt;Styled.HeadingWrapper>
+            {RVDic?.ManageN.replace('[n]', RVDic.Groups)}
+          &lt;/Styled.HeadingWrapper>
+
+          &lt;SearchInput
+            placeholder={RVDic.Search}
+            value={searchText}
+            onChange={(e) => setSearchText(e?.target?.value)}
+          />
+
+          {!loading ? (
+            &lt;TransitionGroup
+              duration={listAnimationDuration}
+              component={Styled.GroupsCardContainer}>
+              {groupItems}
+              &lt;UserGroupUpsertModal
+                createMode={true}
+                typeId={NodeTypeID}
+                users={allUsers}
+                onModalConfirm={handleModalConfirm}
+                onModalDelete={handleModalDelete}
+              />
+            &lt;/TransitionGroup>
+          ) : (
+            &lt;LogoLoader />
+          )}
+        &lt;/Styled.GroupsContainer>
+
+        &lt;Styled.GroupsExcerpt>
+          &lt;Styled.ExcerptImage src={groupImg} />
+          &lt;Styled.GroupDescriptionTitle>
+            {RVDic?.WhatIsN.replace(`[n]`, RVDic.Group)}
+          &lt;/Styled.GroupDescriptionTitle>
+          &lt;Styled.GroupDescription>
+            {RVDic._HelpGroupsSAAS}
+          &lt;/Styled.GroupDescription>
+        &lt;/Styled.GroupsExcerpt>
+      &lt;/Styled.UserGroupsContent>
+    &lt;/Styled.UserGroupsContainer>
   );
 };
-
-UserType.propTypes = {
-  onChange: PropTypes.func,
-  data: PropTypes.object,
-  value: PropTypes.object,
-};
-
-UserType.displayName = 'FilterUserComponent';
-
-export default UserType;
+export default UserGroups;
 </code></pre>
         </article>
     </section>
