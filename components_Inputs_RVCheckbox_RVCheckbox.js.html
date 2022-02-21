@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: components/SubjectItem/screen/SubjectItem.js</title>
+    <title>JSDoc: Source: components/Inputs/RVCheckbox/RVCheckbox.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: components/SubjectItem/screen/SubjectItem.js</h1>
+    <h1 class="page-title">Source: components/Inputs/RVCheckbox/RVCheckbox.js</h1>
 
     
 
@@ -26,32 +26,37 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
- * A component for viewing the subject's item.
- */
-import React from 'react';
-import DimensionHelper from 'utils/DimensionHelper/DimensionHelper';
-import SubjectItemDesktop from './SubjectItemDesktop';
-import SubjectItemMobileView from './SubjectItemMobileView';
+            <pre class="prettyprint source linenums"><code>import React from 'react';
+import {
+  CheckboxContainer,
+  Input,
+  CustomCheckbox,
+  CheckboxLabel,
+} from './RVCheckboxStyle';
+import CheckIcon from '../../Icons/CheckIcons/Check';
 
 /**
- * According to screen dimension returns the suitable component.
- * @param {any} -  the all component props
+ * @description A Checkbox implemented using RaaiVan design system guide lines. Supports all of the functionality of an HTML5 checkbox, and exposes a similar API.
+ * RVCheckbox can be either checked, unchecked, indeterminate, or disabled.
+ * @type {React.&lt;JSX>}
  */
-const SubjectItem = ({ ...props }) => {
-  return (
-    &lt;>
-      {/* If True, will render MobileView component */}
-      {DimensionHelper().isTabletOrMobile ? (
-        &lt;SubjectItemMobileView {...props} />
-      ) : (
-        &lt;SubjectItemDesktop {...props} />
-      )}
-    &lt;/>
-  );
-};
+const RVCheckbox = React.forwardRef((props, forwardedRef) => {
+  const { children, checked, disabled, ...rest } = props;
 
-export default SubjectItem;
+  return (
+    &lt;CheckboxContainer disabled={disabled}>
+      &lt;Input ref={forwardedRef} disabled={disabled} {...rest} />
+      &lt;CustomCheckbox checked={checked} disabled={disabled}>
+        {checked &amp;&amp; &lt;CheckIcon size={20} />}
+      &lt;/CustomCheckbox>
+      &lt;CheckboxLabel checked={checked} disabled={disabled}>
+        {children}
+      &lt;/CheckboxLabel>
+    &lt;/CheckboxContainer>
+  );
+});
+RVCheckbox.displayName = 'RVCheckbox';
+export default RVCheckbox;
 </code></pre>
         </article>
     </section>
