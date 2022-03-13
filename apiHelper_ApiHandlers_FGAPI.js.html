@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: components/Inputs/AutoSuggestInput/AutoSuggestInput.js</title>
+    <title>JSDoc: Source: apiHelper/ApiHandlers/FGAPI.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: components/Inputs/AutoSuggestInput/AutoSuggestInput.js</h1>
+    <h1 class="page-title">Source: apiHelper/ApiHandlers/FGAPI.js</h1>
 
     
 
@@ -26,272 +26,98 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import { useState, useEffect, useContext } from 'react';
-import PropTypes from 'prop-types';
-import Downshift from 'downshift';
-import useDebounce from 'hooks/useDebounce';
-import LoadingIcon from 'components/Icons/LoadingIcons/LoadingIconFlat';
-import Button from 'components/Buttons/Button';
-import Input from 'components/Inputs/Input';
-import DotsIcon from 'components/Icons/Dots/Dots';
-import * as Styled from './AutoSuggestInput.styles';
-import { WindowContext } from 'context/WindowProvider';
+            <pre class="prettyprint source linenums"><code>import { API_NAME_FG_SAVE_FORM_ELEMENTS } from 'constant/api-names-fg';
+import { FG_API } from 'constant/apiConstants';
+import { API_Provider, encodeBase64, extend } from 'helpers/helpers';
+import { apiCallWrapper } from './apiCallHelpers';
 
 /**
- * @typedef PropType
- * @property {number} [delay] - The delay of debouncing.
- * @property {number} [searchAt] -The minimum character is needed to api call begins.
- * @property {string} [placeholder] -The input placeholder.
- * @property {Object[]} [defaultItems] -The default option list for input to select.
- * @property {function} onItemSelect -A callback function that will fire on suggestion selection.
- * @property {function} fetchItems -A callback function that will fire on input change and fetch suggestion from server.
- * @property {boolean} withButtons -If true, shows buttons in menu.
+ * @description saves the elements of a form
+ * @param {string} FormID the id of the form
+ * @param {string?} Name the name or unique code of the form
+ * @param {object[]} Elements an array of all form elements
  */
-
-/**
- *  @description Renders an auto suggestion input.
- * @component
- * @param {PropType} props
- */
-const AutoSuggestInput = (props) => {
-  const {
-    delay,
-    searchAt,
-    onItemSelect,
-    placeholder,
-    fetchItems,
-    defaultItems,
-    children,
-    withButtons,
-    ...rest
-  } = props;
-  //! Stores suggested items.
-  const [items, setItems] = useState(defaultItems);
-  //! Stores the term that user searched
-  const [searchTerm, setSearchTerm] = useState('');
-  //! If true, Shows Loading component, Otherwise, won't show it.
-  const [isSearching, setIsSearching] = useState(false);
-  //! If true, Shows a message to user to inform it that something went wrong.
-  const [hasError, setHasError] = useState(false);
-  //! Debounce api call to the server based on delay time passed to it.
-  const debouncedSearchTerm = useDebounce(searchTerm, delay);
-  //! If true, Shows a modal to user for more advanced options to choose from.
-  const [isModalShown, setIsModalShown] = useState(false);
-
-  const { RVDic } = useContext(WindowContext);
-
-  //! Toggle advanced suggest options modal.
-  const toggleModal = () => setIsModalShown(!isModalShown);
-
-  const getSuggestions = () => {
-    if (!fetchItems) return;
-    setIsSearching(true);
-    fetchItems(debouncedSearchTerm)
-      .then((response) => {
-        setHasError(false);
-        setTimeout(() => {
-          setIsSearching(false);
-        }, 500);
-        if (response?.length === 0) {
-          setHasError(true);
-          setItems([{ value: 'موردی یافت نشد!' }]);
-        } else {
-          setItems(response);
-        }
+export const saveFormElements = ({
+  FormID,
+  Name,
+  Description,
+  Elements,
+} = {}) => {
+  return apiCallWrapper(API_Provider(FG_API, API_NAME_FG_SAVE_FORM_ELEMENTS), {
+    FormID,
+    Name: encodeBase64(Name),
+    Description: encodeBase64(Description),
+    Elements: encodeBase64(
+      JSON.stringify({
+        Elements: (Elements || []).map((e) => ({
+          ElementID: e.ElementID,
+          Type: e.Type, //necessary
+          Name: encodeBase64(e.Name), //optional
+          Title: encodeBase64(e.Title), //necessary
+          Info: !e.Info
+            ? null
+            : encodeBase64(
+                JSON.stringify(
+                  extend({}, e.Info || {}, {
+                    Options: !e?.Info?.Options?.length
+                      ? undefined
+                      : e.Info.Options.map((o) => encodeBase64(o)),
+                    Yes: !e?.Info?.Yes ? undefined : encodeBase64(e.Info.Yes),
+                    No: !e?.Info?.No ? undefined : encodeBase64(e.Info.No),
+                  })
+                )
+              ),
+          Help: encodeBase64(e.Help), //optional
+          Necessary: e.Necessary, //default: false
+          UniqueValue: e.UniqueValue, //default: false
+          Weight: e.Weight, //default: null
+        })),
       })
-      .catch((err) => {
-        setTimeout(() => {
-          setIsSearching(false);
-          setHasError(true);
-          setItems([{ value: 'خطا در برقراری ارتباط' }]);
-        }, 2000);
-      });
-  };
-
-  //! This function will be called each time downshift sets its internal state.
-  const handleReducer = (state, changes) => {
-    if (!state.isOpen &amp;&amp; state.selectedItem) {
-      state.selectedItem.value = '';
-      return changes;
-    }
-
-    return changes;
-  };
-
-  //! Called when the selected item changes.
-  const handleChange = (selectedItem) => {
-    onItemSelect &amp;&amp; selectedItem &amp;&amp; onItemSelect(selectedItem);
-  };
-
-  //! Called when the user selects an item, regardless of the previous selected item.
-  const handleSelection = (selectedItem, stateAndHelpers) => {
-    if (!selectedItem) return;
-    if (hasError) {
-      stateAndHelpers.clearSelection();
-      return;
-    }
-  };
-
-  //! Downshift needs a string representation of stored items.
-  const handleToString = (item) => (item ? item.value : '');
-
-  //! Highlights searched term inside suggested items.
-  // const getHighlightedText = (text, highlight) => {
-  //   if (searchTerm.length &lt; 1) return text;
-  //   const sanitized = highlight.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&amp;');
-  //   const parts = text.split(new RegExp(`(${sanitized})`, 'gi'));
-  //   return (
-  //     &lt;span>
-  //       {parts.map((part, i) => (
-  //         &lt;Styled.HighlightedText
-  //           key={i}
-  //           isMatch={part.toLowerCase() === highlight.toLowerCase()}>
-  //           {part}
-  //         &lt;/Styled.HighlightedText>
-  //       ))}
-  //     &lt;/span>
-  //   );
-  // };
-
-  useEffect(() => {
-    if (
-      fetchItems &amp;&amp;
-      debouncedSearchTerm &amp;&amp;
-      debouncedSearchTerm?.length >= searchAt
-    ) {
-      //! Fetch new items on every amount of delay or mininum search term.
-      getSuggestions();
-    } else {
-      setItems(defaultItems);
-    }
-
-    //? Due to memory leak error.
-    //! Clean up.
-    return () => {
-      setItems([]);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm]);
-
-  return (
-    &lt;Downshift
-      stateReducer={handleReducer}
-      onInputValueChange={setSearchTerm}
-      onChange={handleChange}
-      onSelect={handleSelection}
-      itemToString={handleToString}>
-      {({
-        getRootProps,
-        getInputProps,
-        getItemProps,
-        getMenuProps,
-        isOpen,
-        inputValue,
-        highlightedIndex,
-      }) => (
-        &lt;Styled.AutoSuggestContainer
-          {...rest}
-          className="ColdBackgroundColor BorderRadius4">
-          &lt;Styled.InputElementWrapper
-            {...getRootProps({
-              refKey: 'inputwrapperRef',
-            })}>
-            &lt;Input
-              {...getInputProps({
-                placeholder: placeholder || RVDic.Search,
-                className: `BorderRadius4 ${
-                  !!items.length &amp;&amp; isOpen &amp;&amp; 'show-results'
-                }`,
-              })}>
-              &lt;DotsIcon
-                size={20}
-                style={{ cursor: 'pointer', padding: '0.1rem' }}
-                className="Circle SoftBackgroundColor WarmBorder"
-                onClick={toggleModal}
-              />
-            &lt;/Input>
-          &lt;/Styled.InputElementWrapper>
-          {isModalShown &amp;&amp;
-            children &amp;&amp;
-            children({
-              show: isModalShown,
-              onClose: toggleModal,
-            })}
-          {isOpen &amp;&amp; (
-            &lt;Styled.SuggestMenu
-              {...getMenuProps({
-                className: 'BorderRadius4 ColdBackgroundColor',
-              })}
-              {...getRootProps({ refKey: 'ulRef' })}
-              items={items}
-              hasButton={!!withButtons}>
-              {!!withButtons &amp;&amp; (
-                &lt;Styled.ButtonsContainer className="ColdBackgroundColor">
-                  &lt;Button type="primary">do sth&lt;/Button>
-                  &lt;Button type="negative">do sth. else&lt;/Button>
-                &lt;/Styled.ButtonsContainer>
-              )}
-              {isSearching &amp;&amp; (
-                &lt;Styled.LoaderWrapper>
-                  &lt;LoadingIcon />
-                &lt;/Styled.LoaderWrapper>
-              )}
-              &lt;Styled.ListItemsContainer hasError={hasError} items={items}>
-                {isOpen &amp;&amp;
-                  !isSearching &amp;&amp;
-                  // inputValue &amp;&amp;
-                  items.map((item, index) => {
-                    return (
-                      &lt;Styled.ListItems
-                        hasError={hasError}
-                        {...getItemProps({
-                          key: index,
-                          // className: `BorderRadius4 ${
-                          //   hasError
-                          //     ? 'ColdBackgroundColor'
-                          //     : highlightedIndex === index
-                          //     ? 'SoftBackgroundColor'
-                          //     : 'ColdBackgroundColor'
-                          // }`,
-                          index,
-                          item,
-                        })}>
-                        {/* {searchTerm.length > 2 &amp;&amp; hasError &amp;&amp; (
-                          &lt;Styled.Error className="Circle">!&lt;/Styled.Error>
-                        )} */}
-                        {/* {getHighlightedText(item.value, searchTerm)} */}
-                        {item.value}
-                      &lt;/Styled.ListItems>
-                    );
-                  })}
-              &lt;/Styled.ListItemsContainer>
-            &lt;/Styled.SuggestMenu>
-          )}
-        &lt;/Styled.AutoSuggestContainer>
-      )}
-    &lt;/Downshift>
-  );
+    ),
+  });
 };
 
-AutoSuggestInput.propTypes = {
-  delay: PropTypes.number,
-  searchAt: PropTypes.number,
-  onItemSelect: PropTypes.func,
-  fetchItems: PropTypes.func,
-  defaultItems: PropTypes.array,
-  placeholder: PropTypes.string,
-  withButtons: PropTypes.bool,
+const customizedElements = {
+  'short text': {
+    Type: 'Text',
+    Info: { UseSimpleEditor: true },
+  },
+  paragraph: {
+    Type: 'Text',
+    Info: {},
+  },
+  email: {
+    Type: 'Text',
+    Info: { UseSimpleEditor: true, PatternName: 'email' },
+  },
+  link: {
+    Type: 'Text',
+    Info: { UseSimpleEditor: true, PatternName: 'url' },
+  },
+  number: {
+    Type: 'Numeric',
+    Info: { min: '[number]', max: '[number]' },
+  },
+  'phone number': {
+    Type: 'Text',
+    Info: { UseSimpleEditor: true, PatternName: 'mobile' },
+  },
+  date: {
+    Type: 'Date',
+  },
+  'single-select': {
+    Type: 'Select',
+    Info: { Options: '[array of string items]' },
+  },
+  'multi-select': {
+    Type: 'Checkbox',
+    Info: { Options: '[array of string items]' },
+  },
+  'two options': {
+    Type: 'Binary',
+    Info: { Yes: '[string]', No: '[string]' },
+  },
 };
-
-AutoSuggestInput.defaultProps = {
-  delay: 500,
-  searchAt: 3,
-  defaultItems: [],
-};
-
-AutoSuggestInput.displayName = 'AutoSuggestInput';
-
-export default AutoSuggestInput;
 </code></pre>
         </article>
     </section>
