@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: components/CustomDropzone/CustomDropzone.js</title>
+    <title>JSDoc: Source: components/UserManagement/CreateUserGroupModal/UserGroupUpsertModal.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: components/CustomDropzone/CustomDropzone.js</h1>
+    <h1 class="page-title">Source: components/UserManagement/CreateUserGroupModal/UserGroupUpsertModal.js</h1>
 
     
 
@@ -26,277 +26,176 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
- * Renders a file upload conponent.
- */
-import { useCallback, useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
-import { useDropzone } from 'react-dropzone';
-import * as Styled from './CustomDropzone.styles';
-import FileFormatIcon from 'components/Icons/FilesFormat/FilesFormatIcon';
-import { errorTypes } from './dropzoneUtils';
-import { TCV_DEFAULT, CV_DISTANT } from 'constant/CssVariables';
-import LoadingCircle from 'components/Icons/LoadingIcons/LoadingIconCircle';
+            <pre class="prettyprint source linenums"><code>import * as ModalStyles from './UserGroupUpsertModalStyles';
+import Modal from 'components/Modal/Modal';
+import { useState } from 'react';
+import CloseIcon from 'components/Icons/CloseIcon/CloseIcon';
+import Button from 'components/Buttons/Button';
+import useWindowContext from 'hooks/useWindowContext';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
 /**
- * @typedef PlaceholderType
- * @type {Object}
- * @property {string} dragging -placeholder for dragging.
- * @property {string} main -placeholder for main.
+ * @description create and edit user groups modal component
+ * @param group group object to edit
+ * @param users
+ * @param onConfirm
+ * @param onCancel
+ * @param onDelete
+ * @return {JSX.Element}
+ * @constructor
  */
+const UserGroupUpsertModal = ({
+  group,
+  users,
+  onConfirm,
+  onCancel,
+  onDelete,
+}) => {
+  const listAnimationDuration = 150;
+  const { RVDic } = useWindowContext();
+  const [groupName, setGroupName] = useState(group ? group?.Name : '');
+  const [members, setMembers] = useState(group ? group?.Members : []);
 
-/**
- * @typedef PropType
- * @property {string[]} accept -The accepted file format.
- * @property {number} maxFiles -The maximum number of files that can be uploaded.
- * @property {number} maxEachSize -The maximum size of each file.
- * @property {number} maxTotalSize -The maximum size of all files.
- * @property {function} onError -A callback function that will fire on file upload error.
- * @property {function} onUpload -A callback function that will fire on file upload.
- * @property {Object} containerProps -The props passed to dropzone container.
- * @property {Object} inputProps -The props passed to input.
- * @property {PlaceholderType} placeholders -Placeholders for dropzone input.
- * @property {boolean} disabled -A flag that will disable dropzone area.
- * @property {string[]} formatExceptions -All formats that are not allowed to be uploaded.
- * @property {Boolean} isUploading -All formats that are not allowed to be uploaded.
- * @property {JSX} customComponent -A custom component.
- * {formatExceptions} prop has priority over {accept} prop.
- * If a format is defined forbidden in exceptions, component will throw error even if it is inside accept list.
- */
-
-/**
- *  @description Renders a file upload component.
- * @component
- * @param {PropType} props
- */
-const CustomDropzone = (props) => {
-  const {
-    accept,
-    maxFiles,
-    maxEachSize,
-    maxTotalSize,
-    onError,
-    onUpload,
-    containerProps,
-    inputProps,
-    disabled,
-    formatExceptions,
-    placeholders,
-    isUploading,
-    customComponent: CustomComponent,
-  } = props;
-  const [files, setFiles] = useState([]);
-  const [errors, setErrors] = useState([]);
-
-  const getIcon = () => {
-    if (isUploading) {
-      return &lt;LoadingCircle color={TCV_DEFAULT} />;
-    } else {
-      return (
-        &lt;FileFormatIcon
-          style={{ minWidth: '2rem' }}
-          format="upload"
-          size={25}
-          color={CV_DISTANT}
-        />
-      );
-    }
+  const handleGroupNameChange = (e) => {
+    setGroupName(e?.target?.value);
   };
 
-  //! Converts bytes to mega bytes
-  const sizeInMB = (sizeInBytes) =>
-    Number((sizeInBytes / (1024 * 1024)).toFixed(2));
+  const checkSelection = (userID) => !!members.find((x) => x.UserID === userID);
 
-  //! Custom validator
-  const customValidator = (file) => {
-    const fileFormat = file.name.split('.').pop();
-    const fileSize = file.size;
-
-    //! Compare file size against maximum allowed size for each file.
-    if (sizeInMB(fileSize) > maxEachSize) {
-      return {
-        code: errorTypes.LARGE_FILE_ERROR,
-        message: `حجم فایل بزرگتر از حد مجاز (${maxEachSize} مگابایت)است.`,
-      };
-    }
-
-    //! See if file format is allowed or not.
-    if (formatExceptions &amp;&amp; formatExceptions.includes(fileFormat)) {
-      return {
-        code: errorTypes.FORMAT_ERROR,
-        message: `فایل با فرمت ${fileFormat} مجاز نمی باشد.`,
-      };
-    }
-
-    return null; //! file is clean and there is no error.
+  const deselect = (user) => {
+    const _members = members.filter((u) => u.UserID !== user.UserID);
+    setMembers(_members);
   };
 
-  //! Fires on drop event.
-  const onDrop = useCallback((acceptedFiles) => {
-    setErrors([]);
-    //! Calculate total file size.
-    const totalSize = acceptedFiles
-      .map((file) => file.size)
-      .reduce((sum, size) => sum + sizeInMB(size), 0);
+  const selectMember = (user) => {
+    const exist = !!members?.find((x) => x.UserID === user.UserID);
 
-    // //! Set files(For error checking, If any!)
-    setFiles(acceptedFiles);
-
-    if (totalSize > maxTotalSize) {
-      //! Creates maximum total size error.
-      const totalSizeError = {
-        code: errorTypes.TOTAL_SIZE_ERROR,
-        message: `حجم کل فایل ها بیشتر از حد مجاز (${maxTotalSize} مگابایت) است.`,
-      };
-      setErrors((errors) => [...errors, totalSizeError]);
-      return;
-    } else if (!!errors.length) {
-      return;
-    } else {
-      // console.log(acceptedFiles);
-      //! Do something with the files
-      onUpload &amp;&amp; onUpload(acceptedFiles);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const {
-    getRootProps,
-    getInputProps,
-    isDragActive,
-    fileRejections,
-    // acceptedFiles,
-    open,
-  } = useDropzone({
-    onDrop,
-    accept: accept?.join(', '),
-    maxFiles,
-    disabled: !!disabled || isUploading,
-    validator: customValidator,
-    noKeyboard: !!CustomComponent,
-    noClick: !!CustomComponent,
-  });
-
-  //! Handle errors thrown from dropzone and validator.
-  const handleErrors = () => {
-    //! Maximum file number error.
-    if (fileRejections.length) {
-      if (
-        fileRejections.some(
-          (file) => file?.errors?.[0]?.code === errorTypes.TOO_MANY_FILES_ERROR
-        )
-      ) {
-        const tooManyFilesError = {
-          code: fileRejections?.[0]?.errors?.[0]?.code,
-          message: `تعداد فایل ها بیشتر از حد مجاز (${maxFiles} عدد) است.`,
-        };
-        setErrors((errors) => [...errors, tooManyFilesError]);
-      }
-
-      //! Maximum file size error.
-      if (
-        fileRejections.some(
-          (file) => file?.errors?.[0]?.code === errorTypes.LARGE_FILE_ERROR
-        )
-      ) {
-        const fileSizeError = fileRejections
-          .filter(
-            (file) =>
-              file?.errors?.[0]?.code !== errorTypes.TOO_MANY_FILES_ERROR
-          )
-          .map((file) => {
-            return {
-              code: file.errors[0].code,
-              message: file.errors[0].message,
-              fileName: file.file.name,
-              fileSize: {
-                sizeInBytes: file.file.size,
-                sizeInMB: sizeInMB(file.file.size),
-                sizeReadable: sizeInMB(file.file.size) + 'MB',
-              },
-            };
-          });
-        setErrors((errors) => [...errors, ...fileSizeError]);
-      }
-    }
-
-    //! Format exceptions error.
-    if (
-      fileRejections.some(
-        (file) => file?.errors?.[0]?.code === errorTypes.FORMAT_ERROR
-      )
-    ) {
-      const notAllowedFormatError = {
-        code: fileRejections?.[0]?.errors?.[0]?.code,
-        message: fileRejections?.[0]?.errors?.[0]?.message,
-      };
-      setErrors((errors) => [...errors, notAllowedFormatError]);
-    }
+    if (!exist) setMembers([...members, user]);
   };
 
-  //! Check for errors every time files are changed.
-  useEffect(() => {
-    handleErrors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files]);
+  const handleModalConfirm = () => {
+    if (onConfirm) onConfirm(groupName, members, group?.NodeID);
+  };
 
-  //! OnError callback.
-  useEffect(() => {
-    if (!!errors.length) {
-      onError &amp;&amp; onError(errors);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [errors]);
+  const handleModalCancel = () => {
+    if (onCancel) onCancel();
+  };
+
+  const handleDeleteGroup = () => {
+    if (onDelete) onDelete(group?.NodeID);
+  };
 
   return (
     &lt;>
-      {!!CustomComponent &amp;&amp; &lt;CustomComponent onClick={open} />}
-      &lt;Styled.DropzoneContainer
-        isHidden={!!CustomComponent}
-        {...getRootProps({ ...containerProps, refKey: 'innerRef' })}>
-        {getIcon()}
-        &lt;Styled.InputWrapper>
-          &lt;input {...getInputProps(inputProps)} />
-          {isDragActive ? (
-            &lt;Styled.DropzonePlaceholder>
-              {placeholders?.dragging}
-            &lt;/Styled.DropzonePlaceholder>
-          ) : (
-            &lt;Styled.DropzonePlaceholder>
-              {placeholders?.main}
-            &lt;/Styled.DropzonePlaceholder>
+      &lt;ModalStyles.ModalContent>
+        &lt;ModalStyles.InputLabel>
+          {RVDic?.EnterTheGroupName}
+        &lt;/ModalStyles.InputLabel>
+        &lt;ModalStyles.Input
+          value={groupName}
+          onChange={handleGroupNameChange}
+          type="text"
+          placeholder={RVDic?.GroupName}
+        />
+
+        &lt;ModalStyles.InputLabel>
+          {RVDic?.SelectMembersOfTheGroup}
+        &lt;/ModalStyles.InputLabel>
+        &lt;TransitionGroup
+          duration={listAnimationDuration}
+          component={ModalStyles.SelectedUsersContainer}
+        >
+          {[...members].map((x) => (
+            &lt;CSSTransition
+              key={x?.UserID}
+              timeout={listAnimationDuration}
+              classNames="transition"
+            >
+              &lt;UserChips user={x} onDelete={deselect} />
+            &lt;/CSSTransition>
+          ))}
+        &lt;/TransitionGroup>
+
+        &lt;ModalStyles.UserContainer>
+          {[...users].map((x) => (
+            &lt;UserItemRow
+              key={x?.UserID}
+              user={x}
+              selected={checkSelection(x?.UserID)}
+              onSelect={selectMember}
+            />
+          ))}
+        &lt;/ModalStyles.UserContainer>
+
+        &lt;ModalStyles.ModalActionBar>
+          &lt;Button
+            type="primary"
+            style={buttonStyles}
+            onClick={() => handleModalConfirm()}
+          >
+            {RVDic?.Save}
+          &lt;/Button>
+
+          &lt;Button
+            type="negative-o"
+            style={buttonStyles}
+            onClick={() => handleModalCancel()}
+          >
+            {RVDic?.Return}
+          &lt;/Button>
+
+          &lt;ModalStyles.Spacer />
+
+          {!!group &amp;&amp; (
+            &lt;Button
+              type="negative"
+              style={buttonStyles}
+              onClick={() => handleDeleteGroup()}
+            >
+              {RVDic.RemoveN.replace('[n]', RVDic.Group)}
+            &lt;/Button>
           )}
-        &lt;/Styled.InputWrapper>
-      &lt;/Styled.DropzoneContainer>
+        &lt;/ModalStyles.ModalActionBar>
+      &lt;/ModalStyles.ModalContent>
     &lt;/>
   );
 };
 
-CustomDropzone.propTypes = {
-  accept: PropTypes.array,
-  maxFiles: PropTypes.number,
-  maxEachSize: PropTypes.number,
-  maxTotalSize: PropTypes.number,
-  onError: PropTypes.func,
-  onUpload: PropTypes.func,
-  containerProps: PropTypes.object,
-  inputProps: PropTypes.object,
-  disabled: PropTypes.bool,
-  formatExceptions: PropTypes.array,
-  placeholders: PropTypes.object,
-  isUploading: PropTypes.bool,
+const UserChips = ({ user, onDelete }) => {
+  return (
+    &lt;ModalStyles.ChipsWrapper>
+      &lt;ModalStyles.ChipsContainer>
+        &lt;ModalStyles.ChipsProfileImage
+          src={user?.ImageURL}
+          alt={`${user?.FirstName} ${user?.LastName}`}
+        />
+
+        &lt;ModalStyles.ChipsTitle>{`${user?.FullName}`}&lt;/ModalStyles.ChipsTitle>
+
+        &lt;ModalStyles.ChipsCloseIcon onClick={() => onDelete(user)}>
+          &lt;CloseIcon outline={true} size={21} />
+        &lt;/ModalStyles.ChipsCloseIcon>
+      &lt;/ModalStyles.ChipsContainer>
+    &lt;/ModalStyles.ChipsWrapper>
+  );
 };
 
-CustomDropzone.defaultProps = {
-  placeholders: {
-    main: 'Click or Drag&amp;Drop',
-    dragging: 'Drop here ...',
-  },
+const UserItemRow = ({ user, selected, onSelect }) => {
+  return (
+    &lt;ModalStyles.UserItemContainer onClick={() => onSelect(user)}>
+      &lt;ModalStyles.ProfileImage src={user?.ImageURL} highlight={selected} />
+      &lt;ModalStyles.UserTitle highlight={selected}>
+        {user?.FullName}
+      &lt;/ModalStyles.UserTitle>
+    &lt;/ModalStyles.UserItemContainer>
+  );
 };
 
-CustomDropzone.displayName = 'CustomDropzoneComponent';
-
-export default CustomDropzone;
+const buttonStyles = {
+  height: '3rem',
+  width: '7.5rem',
+};
+export default UserGroupUpsertModal;
 </code></pre>
         </article>
     </section>
