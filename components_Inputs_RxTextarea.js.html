@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: components/ImageCropper/AvatarImageCropper.js</title>
+    <title>JSDoc: Source: components/Inputs/RxTextarea.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: components/ImageCropper/AvatarImageCropper.js</h1>
+    <h1 class="page-title">Source: components/Inputs/RxTextarea.js</h1>
 
     
 
@@ -26,151 +26,61 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import { useState } from 'react';
-import AvatarImageCropperTabs from './AvatarImageCropperItems/AvatarImageCropperTabs';
-import ImageCropperTrigger from './AvatarImageCropperItems/ImageCropperTrigger';
-import Modal from 'components/Modal/Modal';
-import CloseButton from 'components/Buttons/CloseButton';
+            <pre class="prettyprint source linenums"><code>import React, { useEffect, useRef, useState } from 'react';
+import { debounceTime } from 'rxjs';
+import { tap, distinctUntilChanged } from 'rxjs/operators';
+import { createSubject } from 'helpers/helpers';
 
 /**
- * 
- * @component - Avatar Selector/Image Cropper Modal
- * @param {string} [props.currentImageURL] - If supplied, will be the trigger button's initial image
- * @param {string} [props.currentAvatarID] - If supplied, will be the trigger button's initial avatar
- * @param {string} props.uploadId - An ID for image upload API's uploadId
- * @param {string} props.avatarTabLabel - A string for Avatar Tab Label
- * @param {Record&lt;string,string>} props.avatarObject - An object of avatars for using in avatar selection tab content
- * @param {Record&lt;string,string>} props.setAvatarApi - An async function for processing avatar saving API call
- * @param {string} props.uploadType - An string to set the correct api upload path e.g. "ProfileImage"
- * @param {Function} [props.onComplete] - A function to run after image input change (passes newImageURL as parameter to the supplied function)
- * @param {Function} [props.noModal] - Disable Modal view
- * @param {JSX.Element} [props.children] - (Only TabView.Item is acceptable as component's direct child/children)
- * @param {Function} [props.noAvatarTab] - Disable Avatar Selection tab view
- * @param {Function} [props.OnSaveFunction] - A function for Save Button(Comes handy if customizing tabs and custom OnSave functionality is mandatory)
- * @return {JSX.Element}
- * 
- * @example
- * ```jsx
- * // importing avatars object records e.g. 
- * {
- *  mehdi:"/images/mehdi.asda34345.svg",
- *  ramin:"/images/ramin.asda34345.svg",
- * 
- * ...
- * }
- * import * as AvatarSVGS from 'assets/images/avatars/AvatarProfileAssets';
- * 
- * 
- * const setAvatarApi = ({ avatarName, avatarSrc }) => {
- *  alert(avatarName);
- * };
- * 
- * const onCompleteFunc = (newImageURL) => {
- *    alert(newImageURL);
- * }
- * 
- * ... 
- * 
- * &lt;AvatarImageCropper
-    avatarObject={AvatarSVGS}
-    avatarTabLabel={"avatar selection"}
-    uploadType="ProfileImage"
-    uploadId={RVGlobal.CurrentUser.UserID}
-    currentImageURL={RVGlobal.CurrentUser.ProfileImageURL}
-    currentAvatarID={RVGlobal.CurrentUser.AvatarName}
-    setAvatarApi={setAvatarApi}
-    onComplete={onCompleteFunc}
-   />
- * ```
+ * @description simple input with delay time extension
+ * @delayTime time to delay onChange event in millisecond, the default value is 0
  */
-function AvatarImageCropper({
-  currentImageURL,
-  currentAvatarID,
-  uploadId,
-  uploadType,
-  avatarTabLabel,
-  avatarObject,
-  setAvatarApi,
-  onComplete,
-  noModal,
-  children,
-  noAvatarTab,
-  OnSaveFunction,
-}) {
-  const [imageSrc, setImageSrc] = useState(
-    currentImageURL || avatarObject[currentAvatarID]
-  );
-  const [modalStatus, setModalStatus] = useState(false);
+const RxTextarea = React.forwardRef(
+  ({ value, onChange, delayTime = 0, ...props }, forwardedRef) => {
+    const [inputValue, setInputValue] = useState(value);
+    const observableRef = useRef(null);
 
-  const handleModalClose = () => {
-    setModalStatus(false);
-  };
+    useEffect(() => {
+      /**
+       * @description handle input change as stream of data
+       * @type {Subject&lt;T>}
+       */
+      observableRef.current = createSubject();
+      const input$ = observableRef.current;
+      input$
+        .pipe(
+          debounceTime(delayTime),
+          distinctUntilChanged(),
+          tap((x) => {
+            if (onChange) {
+              onChange(x);
+            }
+          })
+        )
+        .subscribe();
 
-  const handleModalCancel = () => {
-    setImageSrc(currentImageURL);
-    handleModalClose();
-  };
+      return () => {
+        input$?.unsubscribe();
+      };
+    }, []);
 
-  const onCompleteFunction = (newImageURL) => {
-    onComplete(newImageURL);
-    handleModalClose();
-  };
+    const handleInputChange = (e) => {
+      setInputValue(e.target.value);
+      observableRef.current.next(e);
+    };
 
-  const handleModalOpen = () => setModalStatus(true);
-
-  const ModalCloseButton = () => &lt;CloseButton onClick={handleModalCancel} />;
-
-  return (
-    &lt;>
-      &lt;ModalWrapper
-        noModal={noModal}
-        modalStatus={modalStatus}
-        handleModalClose={handleModalClose}
-      >
-        &lt;AvatarImageCropperTabs
-          avatarObject={avatarObject}
-          avatarTabLabel={avatarTabLabel}
-          imageSrc={imageSrc}
-          onImageChange={setImageSrc}
-          uploadId={uploadId}
-          uploadType={uploadType}
-          setAvatarApi={setAvatarApi}
-          onComplete={onCompleteFunction}
-          onSubmitComplete={handleModalClose}
-          onCancel={handleModalCancel}
-          isModal={!noModal}
-          OnSaveFunction={OnSaveFunction}
-          noAvatarTab={noAvatarTab}
-          CustomTabAction={!noModal &amp;&amp; ModalCloseButton}
-        >
-          {children}
-        &lt;/AvatarImageCropperTabs>
-      &lt;/ModalWrapper>
-      {!noModal &amp;&amp; (
-        &lt;ImageCropperTrigger imageSrc={imageSrc} onClick={handleModalOpen} />
-      )}
-    &lt;/>
-  );
-}
-
-AvatarImageCropper.displayName = 'AvatarImageCropper';
-
-export default AvatarImageCropper;
-
-const ModalWrapper = ({ noModal, children, modalStatus, handleModalClose }) => {
-  if (noModal) return children;
-  else
     return (
-      &lt;Modal
-        show={modalStatus}
-        stick
-        onClose={handleModalClose}
-        contentWidth={'clamp(10rem,95%,50rem)'}
-      >
-        {children}
-      &lt;/Modal>
+      &lt;textarea
+        value={inputValue}
+        onChange={(e) => handleInputChange(e)}
+        {...props}
+        ref={forwardedRef}
+      >&lt;/textarea>
     );
-};
+  }
+);
+RxTextarea.displayName = 'RxTextarea';
+export default RxTextarea;
 </code></pre>
         </article>
     </section>
