@@ -26,7 +26,7 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import { useState, useEffect, cloneElement, useContext } from 'react';
+            <pre class="prettyprint source linenums"><code>import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import Sticker from './Sticker';
@@ -34,9 +34,10 @@ import useWindowSize from 'hooks/useWindowSize';
 import useOutsideClick from 'hooks/useOutsideClick';
 import usePrevious from 'hooks/usePrevious';
 import useWindowScroll from 'hooks/useWindowScroll';
-import { WindowContext } from 'context/WindowProvider';
+import { getUUID } from 'helpers/helpers';
+import { CV_WHITE } from 'constant/CssVariables';
 
-const { GlobalUtilities, jQuery, RV_RTL } = window;
+const { jQuery } = window;
 const Empty = (props) => &lt;>{props.children}&lt;/>;
 
 const ArrowWidth = 0.8;
@@ -57,7 +58,7 @@ const ArrowRadius = 0.4;
  */
 
 /**
- *  @description Renders a popup menu.
+ * @description Renders a popup menu.
  * @component
  * @param {PropType} props
  *
@@ -77,7 +78,6 @@ const ArrowRadius = 0.4;
  * ```
  */
 const PopupMenu = (props) => {
-  const { GlobalUtilities } = useContext(WindowContext);
   let {
     align,
     arrowClass,
@@ -91,11 +91,9 @@ const PopupMenu = (props) => {
     hoverTimeout,
     children,
   } = props;
-
-  const mainId = 'r' + GlobalUtilities.random_str(10);
-  const menuContainerId = 'r' + GlobalUtilities.random_str(10);
-  const arrowId = 'r' + GlobalUtilities.random_str(10);
-  const menuId = 'r' + GlobalUtilities.random_str(10);
+  const [menuContainerId] = useState(getUUID);
+  const [arrowId] = useState(getUUID);
+  const [menuId] = useState(getUUID);
 
   align = String(align).toLowerCase().charAt(0);
   trigger = String(trigger || 'hover');
@@ -127,33 +125,35 @@ const PopupMenu = (props) => {
         positionInfo: stickerPos,
       })
     );
-  }, [stickerPos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [align, arrowId]);
 
   useEffect(() => {
     //cleanup
     return () => clearHideTimeout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useOutsideClick(
     (e) => {
-      if (showMenu &amp;&amp; trigger == 'click') setShowMenu(false);
+      if (showMenu &amp;&amp; trigger === 'click') setShowMenu(false);
     },
     [menuId, menuContainerId]
   );
 
   if (
     showMenu &amp;&amp;
-    (windowSize.width != preWindowSize.width ||
-      windowSize.height != preWindowSize.height ||
-      scrollTop != preScrollTop)
+    (windowSize.width !== preWindowSize.width ||
+      windowSize.height !== preWindowSize.height ||
+      scrollTop !== preScrollTop)
   )
     setShowMenu(false);
 
-  if ((children || []).length != 2) return &lt;>&lt;/>;
+  if ((children || []).length !== 2) return &lt;>&lt;/>;
 
   //Mouse Events
   const mouseOver =
-    trigger != 'hover'
+    trigger !== 'hover'
       ? null
       : () => {
           clearHideTimeout();
@@ -161,7 +161,7 @@ const PopupMenu = (props) => {
         };
 
   const mouseOut =
-    trigger != 'hover'
+    trigger !== 'hover'
       ? null
       : () => {
           const to = setTimeout(() => setShowMenu(false), hoverTimeout);
@@ -169,7 +169,7 @@ const PopupMenu = (props) => {
         };
   //end of Mouse Events
 
-  const Container = showMenu ? Sticker : Empty;
+  const Container = showMenu || true ? Sticker : Empty;
 
   return (
     &lt;Container
@@ -178,13 +178,11 @@ const PopupMenu = (props) => {
       leftOffset={leftOffset}
       topOffset={topOffset}
       onReposition={(pos) => setStickerPos(pos)}
+      onClick={trigger !== 'click' ? null : () => setShowMenu(!showMenu)}
+      onMouseOver={mouseOver}
+      onMouseOut={mouseOut}
     >
-      {cloneElement(children[0], {
-        id: mainId,
-        onClick: trigger != 'click' ? null : () => setShowMenu(!showMenu),
-        onMouseOver: mouseOver,
-        onMouseOut: mouseOut,
-      })}
+      {children[0]}
       {showMenu &amp;&amp; (
         &lt;MenuContainer
           id={menuContainerId}
@@ -203,11 +201,11 @@ const PopupMenu = (props) => {
           &lt;/ArrowContainer>
           &lt;MenuContent
             id={menuId}
-            className={'rv-border-radius-half ' + menuClass}
+            className={`rv-border-radius-half ${menuClass || ''}`}
             style={info.contentStyle || {}}
             menuStyle={menuStyle}
           >
-            {cloneElement(children[1])}
+            {children[1]}
           &lt;/MenuContent>
         &lt;/MenuContainer>
       )}
@@ -230,7 +228,6 @@ PopupMenu.propTypes = {
 
 PopupMenu.defaultProps = {
   align: 'bottom',
-  menuClass: 'SoftBackgroundColor SoftBorder',
   hoverTimeout: 200,
 };
 
@@ -241,10 +238,10 @@ export default PopupMenu;
 const MenuContainer = styled.div`
   position: relative;
 
-  ${({ align }) => align == 't' &amp;&amp; 'padding-bottom:' + ArrowRadius + 'rem;'}
-  ${({ align }) => align == 'l' &amp;&amp; 'padding-right:' + ArrowRadius + 'rem;'}
-    ${({ align }) => align == 'b' &amp;&amp; 'padding-top:' + ArrowRadius + 'rem;'}
-    ${({ align }) => align == 'r' &amp;&amp; 'padding-left:' + ArrowRadius + 'rem;'}
+  ${({ align }) => align === 't' &amp;&amp; 'padding-bottom:' + ArrowRadius + 'rem;'}
+  ${({ align }) => align === 'l' &amp;&amp; 'padding-right:' + ArrowRadius + 'rem;'}
+    ${({ align }) => align === 'b' &amp;&amp; 'padding-top:' + ArrowRadius + 'rem;'}
+    ${({ align }) => align === 'r' &amp;&amp; 'padding-left:' + ArrowRadius + 'rem;'}
 `;
 
 const ArrowContainer = styled.div`
@@ -254,13 +251,13 @@ const ArrowContainer = styled.div`
   justify-content: center;
 
   ${({ align }) =>
-    ['t', 'b'].some((x) => align == x) &amp;&amp; 'flex-flow:row; left:0; right:0;'}
+    ['t', 'b'].some((x) => align === x) &amp;&amp; 'flex-flow:row; left:0; right:0;'}
   ${({ align }) =>
-    ['l', 'r'].some((x) => align == x) &amp;&amp; 'flex-flow:column; top:0; bottom:0;'}
-    ${({ align }) => align == 't' &amp;&amp; 'bottom:0;'}
-    ${({ align }) => align == 'l' &amp;&amp; 'right:0;'}
-    ${({ align }) => align == 'b' &amp;&amp; 'top:0;'}
-    ${({ align }) => align == 'r' &amp;&amp; 'left:0;'}
+    ['l', 'r'].some((x) => align === x) &amp;&amp; 'flex-flow:column; top:0; bottom:0;'}
+    ${({ align }) => align === 't' &amp;&amp; 'bottom:0;'}
+    ${({ align }) => align === 'l' &amp;&amp; 'right:0;'}
+    ${({ align }) => align === 'b' &amp;&amp; 'top:0;'}
+    ${({ align }) => align === 'r' &amp;&amp; 'left:0;'}
 `;
 
 const MenuArrow = styled.div`
@@ -268,19 +265,17 @@ const MenuArrow = styled.div`
   width: ${ArrowWidth}rem;
   height: ${ArrowWidth}rem;
   opacity: 1;
-
-  -ms-transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
-  -moz-transform: rotate(45deg);
-  -op-transform: rotate(45deg);
   transform: rotate(45deg);
+  background-color: ${CV_WHITE};
+  box-shadow: 1px 3px 20px var(--rv-color-verytransparent) !important;
 
-  ${({ align }) => ['t', 'r'].some((x) => align == x) &amp;&amp; 'border-top-width:0;'}
-  ${({ align }) => ['t', 'l'].some((x) => align == x) &amp;&amp; 'border-left-width:0;'}
+  ${({ align }) => ['t', 'r'].some((x) => align === x) &amp;&amp; 'border-top-width:0;'}
+  ${({ align }) =>
+    ['t', 'l'].some((x) => align === x) &amp;&amp; 'border-left-width:0;'}
     ${({ align }) =>
-    ['b', 'l'].some((x) => align == x) &amp;&amp; 'border-bottom-width:0;'}
+    ['b', 'l'].some((x) => align === x) &amp;&amp; 'border-bottom-width:0;'}
     ${({ align }) =>
-    ['b', 'r'].some((x) => align == x) &amp;&amp; 'border-right-width:0;'}
+    ['b', 'r'].some((x) => align === x) &amp;&amp; 'border-right-width:0;'}
 
     ${({ arrowStyle }) => arrowStyle || ' '}
 `;
@@ -288,12 +283,14 @@ const MenuArrow = styled.div`
 const MenuContent = styled.div`
   padding: 0.7rem;
   opacity: 1;
+  background-color: ${CV_WHITE};
+  box-shadow: 1px 3px 20px var(--rv-color-verytransparent) !important;
   ${({ menuStyle }) => menuStyle || ' '}
 `;
 
 /**
  * @typedef CalculatePositionType
- *  @property {HTMLElement} contentDom Content element.
+ * @property {HTMLElement} contentDom Content element.
  * @property {HTMLElement} arrowDom Arrow element.
  * @property {*} positionInfo The position info.
  * @property {string} align The align parameter.
@@ -315,7 +312,7 @@ export const calculatePosition = ({ arrowDom, align, positionInfo }) => {
   let _moveOffset = 6,
     _movement = 0;
 
-  if (positionInfo.leftMovement != 0 &amp;&amp; (align == 't' || align == 'b')) {
+  if (positionInfo.leftMovement !== 0 &amp;&amp; (align === 't' || align === 'b')) {
     let movedRight = positionInfo.leftMovement > 0;
     _movement = positionInfo.leftMovement + (movedRight ? 1 : -1) * _moveOffset;
 
@@ -323,7 +320,7 @@ export const calculatePosition = ({ arrowDom, align, positionInfo }) => {
 
     ret.contentStyle.direction = movedRight ? 'ltr' : 'rtl';
 
-    if (align == 'b') {
+    if (align === 'b') {
       ret.arrowStyle.margin =
         '0px ' +
         (movedRight ? 0 : sideMargin) +
@@ -339,7 +336,7 @@ export const calculatePosition = ({ arrowDom, align, positionInfo }) => {
     }
   }
 
-  if (positionInfo.topMovement != 0 &amp;&amp; (align == 'l' || align == 'r')) {
+  if (positionInfo.topMovement !== 0 &amp;&amp; (align === 'l' || align === 'r')) {
     var curTopMargin = String(jQuery(arrowDom).css('marginTop'));
     curTopMargin = curTopMargin.length
       ? Number(curTopMargin.substr(0, curTopMargin.length - 2))
@@ -366,7 +363,7 @@ export const calculatePosition = ({ arrowDom, align, positionInfo }) => {
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Wed Jul 13 2022 02:35:36 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Wed Jul 13 2022 12:17:11 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> prettyPrint(); </script>
