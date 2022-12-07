@@ -47,7 +47,7 @@ import PeoplePicker from 'components/PeoplePicker/PeoplePicker';
 import { decodeBase64 } from 'helpers/helpers';
 import { decode } from 'js-base64';
 import _ from 'lodash';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { BackButton, BottomRow, Container, TopRow } from './FilterBar.style';
@@ -63,6 +63,7 @@ import { selectTheme } from 'store/slice/theme/selectors';
 import { selectOnboarding } from 'store/slice/onboarding/selectors';
 import { getNewNodePageUrl } from 'apiHelper/getPageUrl';
 import NodePageRelatedNodeItems from 'views/Node/nodeDetails/items/topBar/NodePageRelatedNodeItems';
+import Tooltip from 'components/Tooltip/react-tooltip/Tooltip';
 
 export const advancedSearchButtonRef = React.createRef();
 
@@ -122,6 +123,7 @@ const FilterBar = ({
   bookmarked,
   itemSelectionMode,
   isProfile,
+  withRelatedNodes,
 }) => {
   const { selectedTeam: selectedApp } = useSelector(selectTheme);
   const teamName = selectedApp.name;
@@ -137,8 +139,6 @@ const FilterBar = ({
     color: 'white',
   };
 
-  // Typed value in search input.
-  const [searchText, setSearchText] = useState('');
   // if True, filters Bookmarked nodes(under develop)
   // const [bookmarked, setBookmarked] = useState(false);
 
@@ -299,7 +299,7 @@ const FilterBar = ({
 
   // By typing in the search input will fire
   const onTextSearch = (value) => {
-    setSearchText(value);
+    onSearch(value.target.value);
   };
 
   const onAdvancedFilterClick = () => {
@@ -331,10 +331,14 @@ const FilterBar = ({
         { id: selectedApp?.id, title: teamName, linkTo: '/classes' },
         ...extendedHierarchy,
 
-        {
-          id: 4,
-          title: RVDic.RelatedNodes,
-        },
+        ...(Boolean(RelatedID)
+          ? [
+              {
+                id: 4,
+                title: RVDic.RelatedNodes,
+              },
+            ]
+          : []),
       ];
 
   const hasSelectedNodeType = () => !!nodeTypeId || !!nodeType?.NodeTypeID;
@@ -357,15 +361,23 @@ const FilterBar = ({
           {nodeType?.IconURL &amp;&amp; (
             &lt;img
               alt={''}
-              style={{ height: '3rem', aspectRatio: 1 }}
+              style={{
+                height: '3rem',
+                aspectRatio: 1,
+                borderRadius: '100%',
+                marginInlineEnd: '0.5rem',
+              }}
               src={nodeType?.IconURL}
             />
           )}
-          &lt;Heading style={{ margin: '0 1rem 0 0rem' }} type={'h1'}>
+          &lt;Heading style={{ marginBlock: '0rem' }} type={'h1'}>
             {isProfile ? RVDic.RelatedNodes : getTypeName()}
           &lt;/Heading>
           {!_.isNull(totalFound) &amp;&amp; (
-            &lt;Heading style={{ margin: '0 1rem 0 1rem' }} type={'h6'}>
+            &lt;Heading
+              style={{ marginBlockEnd: '1rem', marginInlineStart: '1rem' }}
+              type={'h6'}
+            >
               {RVDic?.NItems?.replace('[n]', totalFound)}
             &lt;/Heading>
           )}
@@ -433,14 +445,17 @@ const FilterBar = ({
 
       &lt;BottomRow>
         &lt;SearchInput
-          value={searchText}
           onChange={onTextSearch}
-          afterChangeListener={() => {
-            onSearch(searchText);
-          }}
+          delayTime={300}
           style={{ maxWidth: '60%' }}
         />
-        &lt;div style={{ display: 'flex', flexDirection: 'row' }}>
+        &lt;div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            marginInlineStart: '1rem',
+          }}
+        >
           &lt;CustomDatePicker
             label={RVDic?.SelectDate}
             mode="button"
@@ -450,36 +465,43 @@ const FilterBar = ({
             headerTitle="فیلتر تاریخ ایجاد"
             onChangeVisibility={setCalendarPickerClicked}
             CustomButton={({ onClick }) => (
-              &lt;ShadowButton
-                onClick={() => {
-                  onClick();
-                }}
-                onMouseEnter={() => setDateHover(true)}
-                onMouseLeave={() => setDateHover(false)}
-                style={commonStyle}
-                $isEnabled={date || calendarPickerClicked}
-                className={
-                  calendarPickerClicked || date
-                    ? 'rv-border-distant rv-default'
-                    : 'rv-border-white rv-distant'
-                }
+              &lt;Tooltip
+                tipId={RVDic?.CreationDate}
+                effect="solid"
+                place="top"
+                renderContent={() => RVDic?.CreationDate}
               >
-                {date ? (
-                  &lt;FilledCalendarIcon
-                    size={'1.5rem'}
-                    className={'rv-default'}
-                  />
-                ) : (
-                  &lt;EmptyCalendarIcon
-                    size={'1.5rem'}
-                    className={
-                      calendarPickerClicked || dateHover
-                        ? 'rv-default'
-                        : 'rv-distant'
-                    }
-                  />
-                )}
-              &lt;/ShadowButton>
+                &lt;ShadowButton
+                  onClick={() => {
+                    onClick();
+                  }}
+                  onMouseEnter={() => setDateHover(true)}
+                  onMouseLeave={() => setDateHover(false)}
+                  style={commonStyle}
+                  $isEnabled={date || calendarPickerClicked}
+                  className={
+                    calendarPickerClicked || date
+                      ? 'rv-border-distant rv-default'
+                      : 'rv-border-white rv-distant'
+                  }
+                >
+                  {date ? (
+                    &lt;FilledCalendarIcon
+                      size={'1.5rem'}
+                      className={'rv-default'}
+                    />
+                  ) : (
+                    &lt;EmptyCalendarIcon
+                      size={'1.5rem'}
+                      className={
+                        calendarPickerClicked || dateHover
+                          ? 'rv-default'
+                          : 'rv-distant'
+                      }
+                    />
+                  )}
+                &lt;/ShadowButton>
+              &lt;/Tooltip>
             )}
             onDateSelect={(value) => {
               setDate(value);
@@ -488,27 +510,37 @@ const FilterBar = ({
           />
 
           {!isProfile &amp;&amp; !RelatedID &amp;&amp; (
-            &lt;ShadowButton
-              style={commonStyle}
-              onMouseEnter={() => setBookmarkHover(true)}
-              onMouseLeave={() => setBookmarkHover(false)}
-              onClick={() => onByBookmarked(!isBookMarked)}
-              $isEnabled={isBookMarked}
-              className={
-                isBookMarked
-                  ? 'rv-border-distant rv-default'
-                  : 'rv-border-white rv-distant'
-              }
+            &lt;Tooltip
+              tipId={RVDic?.BookmarkedSubjects}
+              effect="solid"
+              place="top"
+              renderContent={() => RVDic?.BookmarkedSubjects}
             >
-              {isBookMarked ? (
-                &lt;FilledBookmarkIcon size={'1.5rem'} className={'rv-default'} />
-              ) : (
-                &lt;OutLineBookmarkIcon
-                  size={'1.5rem'}
-                  className={bookmarkHover ? 'rv-default' : 'rv-distant'}
-                />
-              )}
-            &lt;/ShadowButton>
+              &lt;ShadowButton
+                style={commonStyle}
+                onMouseEnter={() => setBookmarkHover(true)}
+                onMouseLeave={() => setBookmarkHover(false)}
+                onClick={() => onByBookmarked(!isBookMarked)}
+                $isEnabled={isBookMarked}
+                className={
+                  isBookMarked
+                    ? 'rv-border-distant rv-default'
+                    : 'rv-border-white rv-distant'
+                }
+              >
+                {isBookMarked ? (
+                  &lt;FilledBookmarkIcon
+                    size={'1.5rem'}
+                    className={'rv-default'}
+                  />
+                ) : (
+                  &lt;OutLineBookmarkIcon
+                    size={'1.5rem'}
+                    className={bookmarkHover ? 'rv-default' : 'rv-distant'}
+                  />
+                )}
+              &lt;/ShadowButton>
+            &lt;/Tooltip>
           )}
           {!isProfile &amp;&amp; (
             &lt;PeoplePicker
@@ -519,31 +551,40 @@ const FilterBar = ({
               pickedPeople={people}
               onVisible={setPeoplePickerVisibility}
               buttonComponent={
-                &lt;ShadowButton
-                  style={commonStyle}
-                  // onClick={onClick}
-                  onMouseEnter={() => setPeopleHover(true)}
-                  onMouseLeave={() => setPeopleHover(false)}
-                  $isEnabled={
-                    (people || []).length || isByMe || peoplePickerVisibility
-                  }
-                  className={
-                    isByMe || (people || []).length || peoplePickerVisibility
-                      ? 'rv-border-distant rv-default'
-                      : 'rv-border-white rv-distant'
-                  }
+                &lt;Tooltip
+                  tipId={RVDic?.Creator}
+                  effect="solid"
+                  place="top"
+                  renderContent={() => RVDic?.Creator}
                 >
-                  &lt;PersonIcon
-                    size={'1.5rem'}
+                  &lt;ShadowButton
+                    style={commonStyle}
+                    // onClick={onClick}
+                    onMouseEnter={() => setPeopleHover(true)}
+                    onMouseLeave={() => setPeopleHover(false)}
+                    $isEnabled={
+                      (people || []).length || isByMe || peoplePickerVisibility
+                    }
                     className={
                       isByMe || (people || []).length || peoplePickerVisibility
-                        ? 'rv-default'
-                        : peopleHover
-                        ? 'rv-default'
-                        : 'rv-distant'
+                        ? 'rv-border-distant rv-default'
+                        : 'rv-border-white rv-distant'
                     }
-                  />
-                &lt;/ShadowButton>
+                  >
+                    &lt;PersonIcon
+                      size={'1.5rem'}
+                      className={
+                        isByMe ||
+                        (people || []).length ||
+                        peoplePickerVisibility
+                          ? 'rv-default'
+                          : peopleHover
+                          ? 'rv-default'
+                          : 'rv-distant'
+                      }
+                    />
+                  &lt;/ShadowButton>
+                &lt;/Tooltip>
               }
             />
           )}
@@ -582,13 +623,15 @@ const FilterBar = ({
           )}
         &lt;/div>
       &lt;/BottomRow>
-      &lt;div style={{ width: '100%', paddingBlock: '0.5rem' }}>
-        &lt;NodePageRelatedNodeItems
-          noTitle
-          ClassID={nodeTypeId}
-          NodeID={RelatedID}
-        />
-      &lt;/div>
+      {RelatedID ? (
+        &lt;div style={{ width: '100%', paddingBlock: '0.5rem' }}>
+          &lt;NodePageRelatedNodeItems
+            noTitle
+            ClassID={nodeTypeId}
+            NodeID={RelatedID}
+          />
+        &lt;/div>
+      ) : null}
     &lt;/Container>
   );
 };
@@ -611,7 +654,7 @@ const commonStyle = { width: '3rem', aspectRatio: '1', marginRight: '0.5rem' };
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Wed Nov 30 2022 10:33:37 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Wed Dec 07 2022 06:55:06 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> prettyPrint(); </script>
