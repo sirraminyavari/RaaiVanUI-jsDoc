@@ -252,42 +252,72 @@ const AdvanceSearchDesktop = ({
                 />
               &lt;/TopFilter>
               &lt;div
-                data-tut={'advanced_search_results'}
                 style={{
-                  padding: '0 2rem 2rem 2rem',
+                  display: 'flex',
+                  gap: '0.5rem',
+                  position: 'relative',
+                  paddingInlineEnd: '.5rem',
                 }}
-                {...props}
               >
-                {(isProfile || relatedNodeID) &amp;&amp; (
-                  &lt;RelatedTopicsTab
-                    provideNodes={onApplyNodeType &amp;&amp; onApplyNodeType}
-                    relatedNodes={relatedNodes}
-                    defaultChecked={isProfile}
-                    showAll
-                  />
-                )}
+                &lt;div
+                  data-tut={'advanced_search_results'}
+                  style={{
+                    padding: '0 2rem 2rem 2rem',
+                    width: '100%',
+                  }}
+                  {...props}
+                >
+                  {(isProfile || relatedNodeID) &amp;&amp; (
+                    &lt;RelatedTopicsTab
+                      provideNodes={onApplyNodeType &amp;&amp; onApplyNodeType}
+                      relatedNodes={relatedNodes}
+                      defaultChecked={isProfile}
+                      showAll
+                    />
+                  )}
 
-                &lt;UrgentCreate
-                  onDismiss={onCreateUrgent}
-                  hierarchy={hierarchy}
-                  isVisible={urgentCreate}
-                  nodeTypeId={nodeTypeId}
-                  onForceFetch={forceFetch}
-                  dataFetched={totalFound}
-                  nodeType={nodeType}
-                  itemSelectionMode={itemSelectionMode}
-                />
-                {children &amp;&amp;
-                  React.cloneElement(children, {
-                    searchText: searchText,
-                    dateFilter: dateFilter,
-                    formFilters: formFilters,
-                    forceFetch: forceReload,
-                    isByMe: isProfile ? true : isByMe,
-                    byPeople: byPeople,
-                    isBookMarked: isBookMarked,
-                    onTotalFound: setTotalFound,
-                  })}
+                  &lt;UrgentCreate
+                    onDismiss={onCreateUrgent}
+                    hierarchy={hierarchy}
+                    isVisible={urgentCreate}
+                    nodeTypeId={nodeTypeId}
+                    onForceFetch={forceFetch}
+                    dataFetched={totalFound}
+                    nodeType={nodeType}
+                    itemSelectionMode={itemSelectionMode}
+                  />
+                  {children &amp;&amp;
+                    React.cloneElement(children, {
+                      searchText: searchText,
+                      dateFilter: dateFilter,
+                      formFilters: formFilters,
+                      forceFetch: forceReload,
+                      isByMe: isProfile ? true : isByMe,
+                      byPeople: byPeople,
+                      isBookMarked: isBookMarked,
+                      onTotalFound: setTotalFound,
+                    })}
+                &lt;/div>
+                {isAdvancedSearch &amp;&amp; formElements &amp;&amp; itemSelectionMode &amp;&amp; (
+                  &lt;AdvancedFilterDialog
+                    className={'rv-border-radius-half'}
+                    top={
+                      advancedSearchButtonRef?.current?.getBoundingClientRect()
+                        ?.top
+                    }
+                    left={
+                      advancedSearchButtonRef?.current?.getBoundingClientRect()
+                        ?.left
+                    }
+                  >
+                    &lt;FormFilter
+                      formName={RVDic.AdvancedFilters}
+                      filters={formElements}
+                      onFilter={normalizeSearchElements}
+                      onCloseFilter={() => setIsAdvancedSearch(false)}
+                    />
+                  &lt;/AdvancedFilterDialog>
+                )}
               &lt;/div>
             &lt;/Maintainer>
           &lt;/Scrollable>
@@ -321,21 +351,6 @@ const AdvanceSearchDesktop = ({
           &lt;/SideFilter>
         )}
       &lt;/div>
-
-      {isAdvancedSearch &amp;&amp; formElements &amp;&amp; itemSelectionMode &amp;&amp; (
-        &lt;AdvancedFilterDialog
-          className={'rv-border-radius-half'}
-          top={advancedSearchButtonRef?.current?.getBoundingClientRect()?.top}
-          left={advancedSearchButtonRef?.current?.getBoundingClientRect()?.left}
-        >
-          &lt;FormFilter
-            formName={RVDic.AdvancedFilters}
-            filters={formElements}
-            onFilter={normalizeSearchElements}
-            onCloseFilter={() => setIsAdvancedSearch(false)}
-          />
-        &lt;/AdvancedFilterDialog>
-      )}
     &lt;/Container>
   );
 };
@@ -358,7 +373,7 @@ export default AdvanceSearchDesktop;
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Thu May 11 2023 06:21:50 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Sun May 21 2023 10:35:06 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -29,7 +29,7 @@
             <pre class="prettyprint source linenums"><code>import { useEffect, memo, useState, createContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Styled from 'views/Profile/Profile.styles';
-import Breadcrumb from 'components/Breadcrumb/Breadcrumb';
+import BreadcrumbLayout from 'layouts/NewSidebar/breadCrumbLayout/breadcrumbLayout';
 import ThemeToggle from 'components/Toggle/Toggle';
 import { C_DISTANT, C_GRAY_DARK } from 'constant/Colors';
 import useWindow from 'hooks/useWindowContext';
@@ -44,6 +44,12 @@ import { saveUserSettings } from 'apiHelper/apiFunctions';
 import InfoToast from 'components/toasts/info-toast/InfoToast';
 import { useThemeSlice } from 'store/slice/theme';
 import { selectTheme } from 'store/slice/theme/selectors';
+import {
+  RVColorProp,
+  RVSizeProp,
+  RVVariantProp,
+  ShirtSvg,
+} from '@cliqmind/rv-components';
 
 export const CustomSettingContext = createContext({});
 
@@ -132,57 +138,64 @@ const ProfileCustomization = ({ route }) => {
   }, []);
 
   return (
-    &lt;Styled.CustomizationView dir={RV_Float}>
-      &lt;CustomSettingContext.Provider value={{ isSidebarCollapsed }}>
-        &lt;Styled.ProfileViewContainer
-          style={{
-            width: 'calc(100% - 19rem)',
-            margin: '0',
-          }}
-        >
-          &lt;Breadcrumb items={breadcrumbItems} />
-          &lt;Styled.ProfileTitleWrapper>
-            &lt;Styled.ProfileTitle>{PAGE_TITLE}&lt;/Styled.ProfileTitle>
-            &lt;Styled.ChooseThemeTitle>
-              {RVDic.ThemeSelect}
-            &lt;/Styled.ChooseThemeTitle>
-            &lt;Styled.PreviewGroups>
-              {allThemes.map((preview, key) => (
-                &lt;ThemePreview key={key} preview={preview} />
-              ))}
-            &lt;/Styled.PreviewGroups>
-          &lt;/Styled.ProfileTitleWrapper>
-        &lt;/Styled.ProfileViewContainer>
-        &lt;Styled.ProfileViewContainer className="profile-theme-setting">
-          &lt;Styled.ThemeSettingTitle>
-            {RVDic.ThemeSettings}
-          &lt;/Styled.ThemeSettingTitle>
-          &lt;ThemeToggle
-            // disable={isSavingMenuSetting}
-            onToggle={handleMenuCollapse}
-            isChecked={isSidebarCollapsed}
-            title="منو به صورت پیشفرض باز باشد"
-            titleClass={`${C_GRAY_DARK} profile-theme-toggle`}
-          />
-          {!isSaas &amp;&amp; (
+    &lt;>
+      &lt;BreadcrumbLayout
+        Icon={(props) => &lt;ShirtSvg {...props} outline />}
+        variant={RVVariantProp.white}
+        size={RVSizeProp.medium}
+        color={RVColorProp.grayDark}
+        routeLinks={[{ label: 'Personalization', path: '' }]}
+      />
+      &lt;Styled.CustomizationView dir={RV_Float}>
+        &lt;CustomSettingContext.Provider value={{ isSidebarCollapsed }}>
+          &lt;Styled.ProfileViewContainer
+            style={{
+              margin: '0',
+              width: '100%',
+            }}
+          >
+            &lt;Styled.ProfileTitleWrapper>
+              &lt;Styled.ChooseThemeTitle>
+                {RVDic.ThemeSelect}
+              &lt;/Styled.ChooseThemeTitle>
+              &lt;Styled.PreviewGroups>
+                {allThemes.map((preview, key) => (
+                  &lt;ThemePreview key={key} preview={preview} />
+                ))}
+              &lt;/Styled.PreviewGroups>
+            &lt;/Styled.ProfileTitleWrapper>
+          &lt;/Styled.ProfileViewContainer>
+          &lt;div className="profile-theme-setting" style={{ flexShrink: 0 }}>
+            &lt;Styled.ThemeSettingTitle>
+              {RVDic.ThemeSettings}
+            &lt;/Styled.ThemeSettingTitle>
             &lt;ThemeToggle
-              onToggle={handlePattern}
-              isChecked={hasSidebarPattern}
-              title={RVDic.RV.Settings.ColorfulBubbles}
+              // disable={isSavingMenuSetting}
+              onToggle={handleMenuCollapse}
+              isChecked={isSidebarCollapsed}
+              title="منو به صورت پیشفرض باز باشد"
               titleClass={`${C_GRAY_DARK} profile-theme-toggle`}
             />
-          )}
-          &lt;ThemeToggle
-            disable={true}
-            onToggle={handleDarkMode}
-            isChecked={isDarkMode}
-            title={RVDic.DarkMode + ` (${RVDic.Inactive})`}
-            //TODO: Change color when dark mode is available.
-            titleClass={`${C_DISTANT} profile-theme-toggle`}
-          />
-        &lt;/Styled.ProfileViewContainer>
-      &lt;/CustomSettingContext.Provider>
-    &lt;/Styled.CustomizationView>
+            {!isSaas &amp;&amp; (
+              &lt;ThemeToggle
+                onToggle={handlePattern}
+                isChecked={hasSidebarPattern}
+                title={RVDic.RV.Settings.ColorfulBubbles}
+                titleClass={`${C_GRAY_DARK} profile-theme-toggle`}
+              />
+            )}
+            &lt;ThemeToggle
+              disable={true}
+              onToggle={handleDarkMode}
+              isChecked={isDarkMode}
+              title={RVDic.DarkMode + ` (${RVDic.Inactive})`}
+              //TODO: Change color when dark mode is available.
+              titleClass={`${C_DISTANT} profile-theme-toggle`}
+            />
+          &lt;/div>
+        &lt;/CustomSettingContext.Provider>
+      &lt;/Styled.CustomizationView>
+    &lt;/>
   );
 };
 
@@ -203,7 +216,7 @@ export default memo(ProfileCustomization);
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Thu May 11 2023 06:21:50 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Sun May 21 2023 10:35:06 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> prettyPrint(); </script>
